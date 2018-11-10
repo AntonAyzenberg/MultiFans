@@ -1,0 +1,95 @@
+##############################################################
+#
+# The program should be run in GAP, with included simpcomp package
+#
+##############################################################
+
+#Loads minimal triangulation of torus from simpcomp library
+
+torus:=SCLib.Load(4);
+
+#Initializes the suspended torus
+
+K:=SCSuspension(torus);
+SCRelabelStandard(K);
+
+#Generates the list of maximal simplices, their orientations, 
+#dimension of the ambient space of a multi-fan (n=4 for suspended torus), and the number of vertices
+
+sign:=SCOrientation(K);
+n:=SCDim(K)+1;
+m:=Length(SCVerticesEx(K));
+MaxSimp:=SCFacets(K);
+
+#Initializes characteristic function. The vectors are chosen at random.
+
+RandomVector:=function() local X; X:=[];
+  for j in [1..n] do
+    Add(X,Random([-15..15]));
+  od;
+  return X;
+end;
+
+ArrayRV:=[]; for i in [1..m+1] do
+  Add(ArrayRV,RandomVector());
+od;
+
+CharFunc:=ArrayRV{[1..m]};
+
+#Initializes polarization vector
+
+Polar:=ArrayRV[m+1];
+
+#Initializes volume polynomial depending on m variales c[i]
+
+VolPol:=0;
+Clist:=[]; for i in [1..m] do
+  Add(Clist,X(Rationals,Concatenation("c",ViewString(i))));
+od;
+
+#(r is a counter for maximal simplices)
+#computes the volume polynomial by Lawrence formula and displays the answer
+
+r:=1;
+for I in MaxSimp do
+  Matr:=[];
+  for i in I do
+    Add(Matr,CharFunc[i]);
+  od;
+  alpha:=Polar*Matr^-1;
+  Form:=0;
+  j:=1;
+  for i in I do
+    Form:=Form+\alpha[j]*Clist[i];
+    j:=j+1;
+  od;
+  D:=DeterminantMat(Matr);
+  Form:=sign[r]*Form^n/Product(alpha)/D;
+  r:=r+1;
+  VolPol:=VolPol+Form;
+od; 
+
+VolPol:=VolPol/Factorial(n);
+Display(VolPol);
+
+#Computes the dimensions of the variation spaces var_k of the volume polynomial
+
+dims:=[1]; for j in [1..n-1] do
+  ListOfDerivs:=[];
+  for J in UnorderedTuples([1..m],j) do
+    Deriv:=VolPol;
+    for a in J do
+      Deriv:=Derivative(Deriv,Clist[a]);
+    od;
+    Add(ListOfDerivs, Deriv);
+  od;
+  Add(dims,Dimension(VectorSpace(Rationals,ListOfDerivs)));
+od;
+
+#The last dimension is always one
+
+Add(dims,1);
+
+#Displays the dimensions
+
+Display(dims);
